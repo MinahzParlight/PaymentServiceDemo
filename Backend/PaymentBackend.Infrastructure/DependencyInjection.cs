@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MassTransit;
 using PaymentBackend.Application.Interfaces;
 using PaymentBackend.Domain.Interfaces;
 using PaymentBackend.Infrastructure.Caching;
@@ -40,6 +41,19 @@ namespace PaymentBackend.Infrastructure
             // Chú ý: Cần đăng ký luôn các implementation để Factory có thể resolve
             services.AddTransient<CreditCardPaymentStrategy>();
             services.AddTransient<EWalletPaymentStrategy>();
+
+            services.AddMassTransit(x =>
+            {
+                x.UsingRabbitMq((context, cfg) =>
+                {
+                    // Đọc thông tin kết nối từ appsettings.json
+                    cfg.Host(configuration["RabbitMQ:Host"], h =>
+                    {
+                        h.Username(configuration["RabbitMQ:Username"]);
+                        h.Password(configuration["RabbitMQ:Password"]);
+                    });
+                });
+            });
 
             return services;
         }
