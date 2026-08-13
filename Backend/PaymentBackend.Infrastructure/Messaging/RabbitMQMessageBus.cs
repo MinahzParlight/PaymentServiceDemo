@@ -1,18 +1,18 @@
 using PaymentBackend.Application.Interfaces;
+using MassTransit;
 
 namespace PaymentBackend.Infrastructure.Messaging;
 
 public class RabbitMQMessageBus : IMessageBus
 {
+    private readonly IPublishEndpoint _publishEndpoint;
+
+    public RabbitMQMessageBus(IPublishEndpoint publishEndpoint)
+        {
+            _publishEndpoint = publishEndpoint;
+        }
     public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : class
     {
-        // Dùng các thư viện như MassTransit, hoặc RabbitMQ.Client để gửi message
-        
-        // var json = JsonSerializer.Serialize(@event);
-        // var body = Encoding.UTF8.GetBytes(json);
-        // channel.BasicPublish(exchange: "payment_exchange", routingKey: "", basicProperties: null, body: body);
-        // Mô phỏng giả lập gửi đi
-        Console.WriteLine($"[RabbitMQ] Bắn sự kiện: {@event.GetType().Name} ra Exchange thành công.");
-        await Task.CompletedTask;
+        await _publishEndpoint.Publish(@event, cancellationToken);
     }
 }

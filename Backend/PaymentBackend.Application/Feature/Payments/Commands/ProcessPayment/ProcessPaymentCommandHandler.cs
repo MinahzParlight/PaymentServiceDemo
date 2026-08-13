@@ -2,6 +2,7 @@ using PaymentBackend.Domain.Interfaces;
 using PaymentBackend.Application.Interfaces;
 using PaymentBackend.Domain.ValueObjects;
 using PaymentBackend.Domain.Entities;
+using PaymentBackend.Domain.Events;
 
 namespace PaymentBackend.Application.Features.Payments.Commands.ProcessPayment;
 
@@ -40,8 +41,23 @@ public class ProcessPaymentCommandHandler // : IRequestHandler<ProcessPaymentCom
         // Bắn Event ra Message Bus (RabbitMQ) để các hệ thống khác tự động đồng bộ (Event-Driven)
         if (transaction.Status == Domain.Enums.TransactionStatus.Success)
         {
-            var successEvent = new { transaction.TransactionId, command.OrderId, command.Amount };
+            var successEvent = new PaymentSucceededEvent(
+                Guid.Parse(transaction.TransactionId), 
+                Guid.Parse(command.OrderId), 
+                command.Amount);
+            
             await _messageBus.PublishAsync(successEvent, cancellationToken);
+        }
+        else if (transaction.Status == Domain.Enums.TransactionStatus.Failed)
+        {
+            var failEvent = new PaymentFailedEvent(
+                Guid.Parse(transaction.TransactionId), 
+                Guid.Parse(command.OrderId), 
+                command.Amount,
+                transaction.FailureReason
+            );
+
+            await _messageBus.PublishAsync(failEvent, cancellationToken);
         }
         // Trả về Id giao dịch ra ngoài Controller
         return transaction.TransactionId;
