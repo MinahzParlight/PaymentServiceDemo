@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using FluentValidation;
 
 using PaymentBackend.Domain.Exceptions;
@@ -13,9 +14,11 @@ namespace PaymentBackend.Api.Middlewares;
 public class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
-    public GlobalExceptionMiddleware(RequestDelegate next)
+    private readonly ILogger<GlobalExceptionMiddleware> _logger;
+    public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
     public async Task InvokeAsync(HttpContext context)
     {
@@ -25,6 +28,7 @@ public class GlobalExceptionMiddleware
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Lỗi: ");
             await HandleExceptionAsync(context, ex);
         }
     }

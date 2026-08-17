@@ -1,6 +1,7 @@
 using FluentValidation;
 using PaymentBackend.Application.Interfaces;
 
+
 namespace PaymentBackend.Application.Features.Payments.Commands.ProcessPayment;
 
 public class ProcessPaymentCommandValidator : AbstractValidator<ProcessPaymentCommand>
@@ -10,6 +11,9 @@ public class ProcessPaymentCommandValidator : AbstractValidator<ProcessPaymentCo
     {
         _strategyFactory = strategyFactory;
 
+        RuleFor(x => x.OrderId)
+        .NotEmpty().WithMessage("Mã đơn hàng không được để trống.")
+        .Must(BeAValidGuid).WithMessage("Mã đơn hàng phải là định dạng Guid hợp lệ.");
         RuleFor(v => v.OrderId)
             .NotEmpty().WithMessage("Mã đơn hàng không được để trống.");
         RuleFor(v => v.Amount)
@@ -18,6 +22,10 @@ public class ProcessPaymentCommandValidator : AbstractValidator<ProcessPaymentCo
                 .NotEmpty().WithMessage("Phương thức thanh toán không được để trống.")
                 .Must(BeAValidPaymentType).WithMessage("Phương thức thanh toán không hợp lệ hoặc không được hỗ trợ.");
     }
+    private bool BeAValidGuid(string orderId)
+    {
+        return Guid.TryParse(orderId, out _);
+    }   
     private bool BeAValidPaymentType(string paymentType)
     {
         // Ủy quyền cho Factory để tuân thủ OCP

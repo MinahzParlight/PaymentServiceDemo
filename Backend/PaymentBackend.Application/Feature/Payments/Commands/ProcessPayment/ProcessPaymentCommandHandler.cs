@@ -3,10 +3,11 @@ using PaymentBackend.Application.Interfaces;
 using PaymentBackend.Domain.ValueObjects;
 using PaymentBackend.Domain.Entities;
 using PaymentBackend.Domain.Events;
+using MediatR;
 
 namespace PaymentBackend.Application.Features.Payments.Commands.ProcessPayment;
 
-public class ProcessPaymentCommandHandler // : IRequestHandler<ProcessPaymentCommand, string>
+public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentCommand, string>
 {
     private readonly IPaymentWriteRepository _writeRepository;
     private readonly IUnitOfWork _unitOfWork;

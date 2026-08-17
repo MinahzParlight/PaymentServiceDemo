@@ -19,7 +19,7 @@ namespace PaymentBackend.Infrastructure
         {
             // 1. Đăng ký Database (EF Core)
             services.AddDbContext<PaymentDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
             // 2. Đăng ký Repositories & UnitOfWork
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -33,7 +33,7 @@ namespace PaymentBackend.Infrastructure
             services.AddSingleton<ICacheService, RedisCacheService>();
 
             // 4. Đăng ký Message Broker
-            services.AddSingleton<IMessageBus, RabbitMQMessageBus>();
+            services.AddScoped<IMessageBus, RabbitMQMessageBus>();
 
             // 5. Đăng ký Factory & Payment Strategies
             services.AddSingleton<IPaymentStrategyFactory, PaymentStrategyFactory>();
