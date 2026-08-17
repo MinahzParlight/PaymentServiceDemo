@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Data;
 using Microsoft.Data.SqlClient;
+using Npgsql;
 using Dapper;
 
 namespace PaymentBackend.Infrastructure.Persistence.Repositories;
@@ -15,20 +16,20 @@ public class PaymentReadRepository : IPaymentReadRepository
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection");
     }
-    private IDbConnection CreateConnection() => new SqlConnection(_connectionString);
+    private IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
     public async Task<T> GetPaymentDetailsAsync<T>(string transactionId)
     {
         // Viết SQL thô cực nhanh, lấy vừa đủ dữ liệu, map trực tiếp sang DTO bằng Dapper
         var sql = @"
-            SELECT 
-                TransactionId, 
-                TotalAmount, 
-                Status AS StatusName, 
-                GatewayReference, 
-                FailureReason, 
-                CreatedAt 
-            FROM PaymentTransactions 
-            WHERE TransactionId = @TransactionId";
+                SELECT 
+                    ""Id"" as TransactionId, 
+                    ""Amount"" as TotalAmount, 
+                    ""Status"" as StatusName, 
+                    ""GatewayReference"", 
+                    ""FailureReason"", 
+                    ""CreatedAt"" 
+                FROM ""PaymentTransactions"" 
+                WHERE ""Id"" = @TransactionId::uuid";
         using var connection = CreateConnection();
         
         // Dapper tự động map các cột truy vấn được sang properties của class T (PaymentDetailsDto)
@@ -38,16 +39,15 @@ public class PaymentReadRepository : IPaymentReadRepository
     {
         // Sử dụng cú pháp phân trang OFFSET FETCH của SQL Server
         var sql = @"
-            SELECT 
-                TransactionId, 
-                TotalAmount, 
-                Status, 
-                CreatedAt 
-            FROM PaymentTransactions 
-            WHERE OrderId = @OrderId
-            ORDER BY CreatedAt DESC
-            OFFSET @Offset ROWS 
-            FETCH NEXT @PageSize ROWS ONLY";
+                SELECT 
+                    ""Id"" as TransactionId, 
+                    ""Amount"" as TotalAmount, 
+                    ""Status"", 
+                    ""CreatedAt"" 
+                FROM ""PaymentTransactions"" 
+                WHERE ""OrderId"" = @OrderId::uuid
+                ORDER BY ""CreatedAt"" DESC
+                LIMIT @PageSize OFFSET @Offset";
         var parameters = new 
         { 
             OrderId = orderId, 
