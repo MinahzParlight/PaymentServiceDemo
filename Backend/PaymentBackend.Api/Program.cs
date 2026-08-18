@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
 using PaymentBackend.Application;
 using PaymentBackend.Infrastructure;
@@ -23,10 +24,18 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(PaymentBackend.Application.Features.Payments.Commands.ProcessPayment.ProcessPaymentCommandHandler).Assembly));
 builder.Services.AddValidatorsFromAssembly(typeof(PaymentBackend.Application.Features.Payments.Commands.ProcessPayment.ProcessPaymentCommandValidator).Assembly);
 builder.Services.AddApplicationServices();
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => 
+{
+    var configuration = ConfigurationOptions.Parse("localhost:6379", true);
+    return ConnectionMultiplexer.Connect(configuration);
+});
+
 
 var app = builder.Build();
 

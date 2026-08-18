@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MassTransit;
+using StackExchange.Redis;
 using PaymentBackend.Application.Interfaces;
 using PaymentBackend.Domain.Interfaces;
 using PaymentBackend.Infrastructure.Caching;
@@ -9,6 +10,7 @@ using PaymentBackend.Infrastructure.Gateways;
 using PaymentBackend.Infrastructure.Messaging;
 using PaymentBackend.Infrastructure.Persistence;
 using PaymentBackend.Infrastructure.Persistence.Repositories;
+using PaymentBackend.Infrastructure.Services;
 
 namespace PaymentBackend.Infrastructure
 {
@@ -17,28 +19,36 @@ namespace PaymentBackend.Infrastructure
         // Hàm này sẽ được gọi từ Program.cs
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // 1. Đăng ký Database (EF Core)
+            // Đăng ký Database (EF Core)
             services.AddDbContext<PaymentDbContext>(options =>
                 options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
-            // 2. Đăng ký Repositories & UnitOfWork
+            // Đăng ký Repositories & UnitOfWork
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IPaymentWriteRepository, PaymentWriteRepository>();
             services.AddScoped<IPaymentReadRepository, PaymentReadRepository>();
 
-            // 3. Đăng ký Caching (Redis)
+            var redisConnectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+
+            // Đăng ký Caching (Redis)
             services.AddStackExchangeRedisCache(options => {
-                options.Configuration = configuration.GetConnectionString("Redis");
+                options.Configuration = redisConnectionString;
             });
             services.AddSingleton<ICacheService, RedisCacheService>();
 
-            // 4. Đăng ký Message Broker
+            services.AddSingleton<IConnectionMultiplexer>(sp => 
+                ConnectionMultiplexer.Connect(redisConnectionString));
+
+            // Đăng ký Service cung cấp Khóa phân tán cho tầng Application
+            services.AddScoped<IDistributedLockService, RedisLockService>();
+
+            // Đăng ký Message Broker
             services.AddScoped<IMessageBus, RabbitMQMessageBus>();
 
-            // 5. Đăng ký Factory & Payment Strategies
+            // Đăng ký Factory & Payment Strategies
             services.AddSingleton<IPaymentStrategyFactory, PaymentStrategyFactory>();
             
-            // Chú ý: Cần đăng ký luôn các implementation để Factory có thể resolve
+            // Đăng ký các implementation để Factory có thể resolve
             services.AddTransient<CreditCardPaymentStrategy>();
             services.AddTransient<EWalletPaymentStrategy>();
 
